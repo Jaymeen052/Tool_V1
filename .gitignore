@@ -1,0 +1,46 @@
+# === Node / Monorepo (generic) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# === Next.js build artifacts ===
+.next/
+.next/cache/
+out/            # `next export` output
+dist/           # if you build TS/other libs to dist
+
+# === Coverage / testing ===
+coverage/
+
+# === TypeScript ===
+*.tsbuildinfo
+
+# === Environment files ===
+# Keep real secrets out of git; commit an example if you like.
+.env*
+!.env.example
+
+# === Vercel ===
+.vercel/
+
+# === Editor / OS junk ===
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# === Misc caches ===
+*.swp
+*.swo
+*.orig

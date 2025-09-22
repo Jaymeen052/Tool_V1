@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* your extras */
+:root { --bg: #F8FAFC; --text: #0F172A; }
+html { background: var(--bg); color: var(--text); }
+@media print { .no-print { display: none !important; } }
