@@ -28,8 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div>© {new Date().getFullYear()} Sporting Wheelies & Paralympic Sports Association</div>
           <div>
             Admin contact:{' '}
-            <a className="underline" href="mailto:admin@sportingwheelies.org.au">
-              admin@sportingwheelies.org.au
+            <a className="underline" href="mailto:sport@sportingwheelies.org.au">
+              sport@sportingwheelies.org.au 
             </a>
           </div>
         </footer>
