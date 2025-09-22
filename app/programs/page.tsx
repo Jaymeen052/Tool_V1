@@ -9,7 +9,7 @@ type SportProgram = {
   location: string;
   sessionsPerWeekOpt: string; // "", "1".."5","More"
   sessionsPerWeek: number;    // 0,1..6
-  minutesPerSession: number;  // 0,15..90
+  minutesPerSession: number;  // 0..180
 };
 
 type PAProgram = {
@@ -31,7 +31,8 @@ type FieldErrors = {
 
 const SESSION_OPTIONS = ['1', '2', '3', '4', '5', 'More'];
 const toSessionsNum = (opt: string) => (opt === 'More' ? 6 : Number(opt || 0));
-const MINUTES_OPTIONS = [15, 30, 45, 60, 75, 90];
+// Minutes up to 180 (15-min steps)
+const MINUTES_OPTIONS = Array.from({ length: 12 }, (_, i) => 15 * (i + 1));
 
 const SPORT_OPTIONS = [
   'Paralympic sports','Para-archery','Para-athletics','Para-badminton','Blind football','Boccia','Para-canoe','Para-cycling',
@@ -243,6 +244,13 @@ export default function ProgramsPage() {
 
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  const goBackToStart = () => {
+    // Persist current progress so it’s not lost on nav
+    clearAllErrors();
+    persist(getSnapshot());
+    router.push('/'); // client-side; no refresh
   };
 
   const saveAndGo = () => {
@@ -525,13 +533,14 @@ export default function ProgramsPage() {
       </section>
 
       {/* Footer actions */}
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-between gap-3">
         <button
-          onClick={() => { clearAllErrors(); persist(getSnapshot()); }}
+          onClick={goBackToStart}
           className="px-4 py-2 rounded-xl border"
           type="button"
+          title="Back to start"
         >
-          Save
+          ← Back to Start
         </button>
 
         <button

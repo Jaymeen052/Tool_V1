@@ -1,7 +1,14 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DISEASES, meets150, nntPerYear, casesPreventedPerYear } from '@/lib/calc';
+import {
+  DISEASES,
+  meets150,
+  nntPerYear,
+  casesPreventedPerYear,
+  qalysGainedPerYear_fromParams,
+  dalysAvoidedPerYear_fromParams,
+} from '@/lib/calc';
 
 type ProgramsState = {
   sportsEnabled: boolean;
@@ -60,6 +67,23 @@ export default function OutputPage() {
     };
   }, [prog]);
 
+  // Totals (sum across diseases)
+  const totals = useMemo(() => {
+    let totalPrevented = 0;
+    let totalQALY = 0;
+    let totalDALY = 0;
+
+    for (const d of DISEASES) {
+      const prevented = casesPreventedPerYear(activeParticipants, d.p0, d.rrr);
+      const qaly = qalysGainedPerYear_fromParams(activeParticipants, d.p0, d.rrr, d /* discountRate=0 */);
+      const daly = dalysAvoidedPerYear_fromParams(activeParticipants, d.p0, d.rrr, d /* discountRate=0 */);
+      totalPrevented += prevented || 0;
+      totalQALY += qaly || 0;
+      totalDALY += daly || 0;
+    }
+    return { totalPrevented, totalQALY, totalDALY };
+  }, [activeParticipants]);
+
   return (
     <div className="space-y-6">
       {/* Header with back button (client-side; preserves values) */}
@@ -73,7 +97,7 @@ export default function OutputPage() {
           >
             ← Back to Programs
           </button>
-          <h1 className="text-xl font-semibold">Results — NNT & Cases Prevented (Annual)</h1>
+          <h1 className="text-xl font-semibold">Results — Annual Impact</h1>
         </div>
         <div className="text-sm text-slate-600">
           Enrolled: <b>{enrolledParticipants}</b> &nbsp;|&nbsp; Active (≥150): <b>{activeParticipants}</b>
@@ -88,6 +112,8 @@ export default function OutputPage() {
               <th className="text-right px-4 py-3">NNT (clinical)</th>
               <th className="text-right px-4 py-3">Program NNT</th>
               <th className="text-right px-4 py-3">Cases prevented / yr</th>
+              <th className="text-right px-4 py-3">QALYs gained / yr</th>
+              <th className="text-right px-4 py-3">DALYs avoided / yr</th>
             </tr>
           </thead>
           <tbody>
@@ -95,22 +121,37 @@ export default function OutputPage() {
               const clinicalNNT = nntPerYear(d.p0, d.rrr);
               const prevented = casesPreventedPerYear(activeParticipants, d.p0, d.rrr);
               const programNNT = prevented && prevented > 0 ? enrolledParticipants / prevented : null;
+              const qalys = qalysGainedPerYear_fromParams(activeParticipants, d.p0, d.rrr, d);
+              const dalys = dalysAvoidedPerYear_fromParams(activeParticipants, d.p0, d.rrr, d);
               return (
                 <tr key={d.key} className="border-t">
                   <td className="px-4 py-3">{d.label}</td>
                   <td className="px-4 py-3 text-right">{fmt(clinicalNNT, 1)}</td>
                   <td className="px-4 py-3 text-right">{fmt(programNNT, 1)}</td>
                   <td className="px-4 py-3 text-right">{fmt(prevented, 2)}</td>
+                  <td className="px-4 py-3 text-right">{fmt(qalys, 2)}</td>
+                  <td className="px-4 py-3 text-right">{fmt(dalys, 2)}</td>
                 </tr>
               );
             })}
+
+            {/* Totals row */}
+            <tr className="border-t bg-slate-50 font-medium">
+              <td className="px-4 py-3 text-right">Total</td>
+              <td className="px-4 py-3 text-right">—</td>
+              <td className="px-4 py-3 text-right">—</td>
+              <td className="px-4 py-3 text-right">{fmt(totals.totalPrevented, 2)}</td>
+              <td className="px-4 py-3 text-right">{fmt(totals.totalQALY, 2)}</td>
+              <td className="px-4 py-3 text-right">{fmt(totals.totalDALY, 2)}</td>
+            </tr>
           </tbody>
         </table>
       </div>
 
       <p className="text-xs text-slate-500">
         NNT (clinical) = 1 / (p0 × RRR). Program NNT = Enrolled / CasesPrevented.
-        CasesPrevented = Active × p0 × RRR. Only rows achieving ≥150 min/week are counted as Active.
+        CasesPrevented = Active × p0 × RRR. QALYs/DALYs are computed from standard burden parameters
+        (DW, duration, case fatality, life-years lost). Set those in <code>lib/calc.ts</code>.
       </p>
     </div>
   );
