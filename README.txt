@@ -12,3 +12,7 @@ Folders:
 - public/       -> Static assets (e.g., logo.png)
 
 Next step: paste the code files I'll provide into the corresponding folders.
+
+
+dieses list change 
+

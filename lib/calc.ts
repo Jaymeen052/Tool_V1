@@ -1,37 +1,83 @@
-// lib/calc.ts — Standard QALY/DALY + NNT helpers (AU-anchored defaults)
-// NNT/Cases: p0 = annual baseline risk; rrr = risk reduction at ≥150 min/wk.
-// DALY per case = YLL + YLD = (caseFatality × lifeYearsLostIfDeath) + (dw × durationYears)
-// QALY loss per case = (dw × durationYears) + (caseFatality × backgroundUtility × lifeYearsLostIfDeath)
+// lib/calc.ts — NNT, Cases, QALY, DALY for the manager’s 8-disease list (AU-anchored defaults)
+//
+// Formulas (annual):
+//  - NNT (clinical) = 1 / (p0 × rrr)
+//  - Cases prevented = Active × p0 × rrr
+//  - DALY per case = YLL + YLD = (caseFatality × lifeYearsLostIfDeath) + (dw × durationYears)
+//  - QALY loss per case = (dw × durationYears) + (caseFatality × backgroundUtility × lifeYearsLostIfDeath)
+// Notes:
+//  - p0 are annual baseline risks (per person)
+//  - rrr is the relative risk reduction at ≥150 min/wk
+//  - Defaults below are conservative, Australia-anchored (GBD DWs + AIHW/registry patterns)
 
 export type DiseaseParam = {
   key: string;
   label: string;
 
-  // Risk & effect (for NNT / cases prevented)
+  // For NNT / cases prevented
   p0: number | null;   // annual risk per person
   rrr: number | null;  // relative risk reduction at ≥150 min/wk
 
-  // Burden inputs
-  dw: number | null;                 // disability weight
+  // For QALY/DALY per incident case
+  dw: number | null;                 // disability weight (GBD-style)
   durationYears: number | null;      // average years with disability
-  caseFatality: number | null;       // probability an incident case is fatal (over the horizon above)
-  lifeYearsLostIfDeath: number | null; // remaining LE if fatal (years)
-  backgroundUtility?: number | null; // average QoL for remaining life (≈0.85–0.90)
+  caseFatality: number | null;       // probability incident case is fatal (over the above horizon)
+  lifeYearsLostIfDeath: number | null; // expected remaining life-years if fatal
+  backgroundUtility?: number | null; // population utility for remaining life (≈0.85–0.90)
 };
 
-// AU-oriented defaults so outputs are populated now (can refine later)
+// ---------------- Manager’s disease list ----------------
 export const DISEASES: DiseaseParam[] = [
-  { key: 't2d',    label: 'Type 2 Diabetes',                  p0: 0.0040, rrr: 0.30, dw: 0.07,  durationYears: 10.0, caseFatality: 0.00, lifeYearsLostIfDeath: 0,  backgroundUtility: 0.88 },
-  { key: 'chd',    label: 'Coronary Heart Disease (acute coronary event)', p0: 0.0035, rrr: 0.25, dw: 0.073, durationYears: 1.0,  caseFatality: 0.12, lifeYearsLostIfDeath: 10, backgroundUtility: 0.88 },
-  { key: 'stroke', label: 'Cerebrovascular disease (Stroke)',  p0: 0.0013, rrr: 0.20, dw: 0.266, durationYears: 5.0,  caseFatality: 0.20, lifeYearsLostIfDeath: 8,  backgroundUtility: 0.88 },
-  { key: 'hipfx',  label: 'Hip fracture (45+)',                p0: 0.0050, rrr: 0.15, dw: 0.30,  durationYears: 1.0,  caseFatality: 0.25, lifeYearsLostIfDeath: 5,  backgroundUtility: 0.88 },
-  { key: 'breast', label: 'Breast Cancer',                     p0: 0.00078,rrr: 0.20, dw: 0.288, durationYears: 1.0,  caseFatality: 0.077,lifeYearsLostIfDeath: 12, backgroundUtility: 0.88 },
-  { key: 'crc',    label: 'Colorectal Cancer',                 p0: 0.00057,rrr: 0.29, dw: 0.288, durationYears: 1.0,  caseFatality: 0.296,lifeYearsLostIfDeath: 12, backgroundUtility: 0.88 },
-  { key: 'dementia', label: 'Dementia (65+)',                  p0: 0.0168, rrr: 0.20, dw: 0.40,  durationYears: 5.0,  caseFatality: 0.60, lifeYearsLostIfDeath: 5,  backgroundUtility: 0.88 },
-  { key: 'depress', label: 'Depression (episode, adult)',      p0: 0.049,  rrr: 0.25, dw: 0.20,  durationYears: 0.5,  caseFatality: 0.00, lifeYearsLostIfDeath: 0,  backgroundUtility: 0.88 },
+  // 1) Coronary heart disease
+  { key: 'chd', label: 'Coronary heart disease',
+    p0: 0.0035, rrr: 0.25,
+    dw: 0.073, durationYears: 1.0, caseFatality: 0.12, lifeYearsLostIfDeath: 10, backgroundUtility: 0.88,
+  },
+
+  // 2) Stroke
+  { key: 'stroke', label: 'Stroke',
+    p0: 0.0013, rrr: 0.20,
+    dw: 0.266, durationYears: 5.0, caseFatality: 0.20, lifeYearsLostIfDeath: 8, backgroundUtility: 0.88,
+  },
+
+  // 3) Diabetes (predominantly Type 2)
+  { key: 'diabetes', label: 'Diabetes',
+    p0: 0.0040, rrr: 0.30,
+    dw: 0.07, durationYears: 10.0, caseFatality: 0.00, lifeYearsLostIfDeath: 0, backgroundUtility: 0.88,
+  },
+
+  // 4) Arthritis & related disorders (chronic, non-fatal)
+  { key: 'arthritis', label: 'Arthritis and related disorders',
+    p0: 0.0100, rrr: 0.15,
+    dw: 0.079, durationYears: 5.0, caseFatality: 0.00, lifeYearsLostIfDeath: 0, backgroundUtility: 0.88,
+  },
+
+  // 5) Back pain & problems (episodic)
+  { key: 'backpain', label: 'Back pain and problems',
+    p0: 0.0500, rrr: 0.15,
+    dw: 0.114, durationYears: 0.5, caseFatality: 0.00, lifeYearsLostIfDeath: 0, backgroundUtility: 0.88,
+  },
+
+  // 6) Osteoporosis (fracture proxy)
+  { key: 'osteoporosis', label: 'Osteoporosis',
+    p0: 0.0050, rrr: 0.15,
+    dw: 0.30, durationYears: 1.0, caseFatality: 0.15, lifeYearsLostIfDeath: 5, backgroundUtility: 0.88,
+  },
+
+  // 7) Asthma (chronic, mostly non-fatal improvement)
+  { key: 'asthma', label: 'Asthma',
+    p0: 0.0100, rrr: 0.10,
+    dw: 0.050, durationYears: 1.0, caseFatality: 0.00, lifeYearsLostIfDeath: 0, backgroundUtility: 0.88,
+  },
+
+  // 8) Emphysema (COPD)
+  { key: 'emphysema', label: 'Emphysema',
+    p0: 0.0030, rrr: 0.10,
+    dw: 0.168, durationYears: 5.0, caseFatality: 0.05, lifeYearsLostIfDeath: 5, backgroundUtility: 0.88,
+  },
 ];
 
-// --------- helpers used by the UI (unchanged for your table layout) ---------
+// ---------------- Core helpers used by the UI ----------------
 
 export function meets150(sessionsPerWeek: number, minutesPerSession: number): boolean {
   return Number(sessionsPerWeek) > 0 &&
@@ -51,7 +97,7 @@ export function casesPreventedPerYear(
   adherence = 1,
 ): number {
   if (!participantsActive || !p0 || !rrr || p0 <= 0 || rrr <= 0) return 0;
-  return participantsActive * p0 * rrr * (adherence ?? 1);
+  return participantsActive * (p0 ?? 0) * (rrr ?? 0) * (adherence ?? 1);
 }
 
 // ---- per-case burden (no discounting; ABDS/GBD base case) ----
