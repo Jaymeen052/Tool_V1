@@ -366,7 +366,10 @@ export default function OutputPage() {
                           innerRadius={78}
                           outerRadius={110}
                           labelLine={false}
-                          label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}
+                          // ******* FIX: coerce percent to number *******
+                          label={({ name, percent }: any) =>
+                            `${name} ${Math.round(Number(percent ?? 0) * 100)}%`
+                          }
                           isAnimationActive={false}
                         >
                           {sportsByLoc.map((_, i) => (
@@ -423,7 +426,10 @@ export default function OutputPage() {
                           innerRadius={78}
                           outerRadius={110}
                           labelLine={false}
-                          label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}
+                          // ******* FIX: coerce percent to number *******
+                          label={({ name, percent }: any) =>
+                            `${name} ${Math.round(Number(percent ?? 0) * 100)}%`
+                          }
                           isAnimationActive={false}
                         >
                           {paByLoc.map((_, i) => (
