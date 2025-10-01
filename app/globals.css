@@ -1,6 +1,107 @@
 @import "tailwindcss";
+@tailwind utilities;
 
 /* your extras */
 :root { --bg: #F8FAFC; --text: #0F172A; }
 html { background: var(--bg); color: var(--text); }
 @media print { .no-print { display: none !important; } }
+
+
+/* --- Brand look & feel helpers --- */
+
+.app-bg {
+  /* soft cyan/emerald glow over a light slate base */
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(16,185,129,.18), transparent 60%),
+    radial-gradient(1000px 500px at 110% 10%, rgba(56,189,248,.15), transparent 55%),
+    linear-gradient(#f8fafc, #f8fafc);
+}
+
+.card {
+  @apply rounded-2xl border border-slate-200/80 bg-white shadow-sm;
+}
+
+.card-muted {
+  @apply rounded-2xl border border-slate-200/60 bg-white/70 shadow-sm backdrop-blur;
+}
+
+.section-title {
+  @apply text-lg font-semibold;
+}
+
+.subtle {
+  @apply text-slate-600;
+}
+
+.input {
+  @apply border rounded-lg px-3 py-2 outline-none
+         focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500;
+}
+
+.btn-primary {
+  @apply rounded-xl bg-[#008A4E] px-4 py-2 text-white shadow
+         hover:bg-[#007544] active:scale-[.99] transition;
+}
+
+.badge {
+  @apply inline-flex h-7 w-7 items-center justify-center rounded-full
+         bg-emerald-100 text-emerald-700 text-sm font-medium;
+}
+
+@layer components {
+  /* Big centered brand title */
+  .brand-title {
+    @apply font-extrabold tracking-wide text-slate-800;
+    font-size: clamp(1.25rem, 2.4vw + 0.5rem, 1.9rem); /* responsive */
+    letter-spacing: 0.02em;
+  }
+
+  /* Soft pill button */
+  .btn-soft {
+    @apply inline-flex items-center gap-2 rounded-full px-3.5 py-1.5
+           text-sm font-medium border transition;
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+  .btn-soft:hover { @apply bg-emerald-100; }
+  .btn-soft:active { transform: translateY(0.5px); }
+
+  /* Optional ghost variant if you want a lighter look later */
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-full px-3.5 py-1.5
+           text-sm font-medium text-slate-700 hover:bg-slate-100/70;
+  }
+}
+
+/* globals.css */
+
+/* ...existing @tailwind lines... */
+
+/* darker dotted grid */
+.bg-grid-slate-100 {
+  --grid-color: rgba(15, 23, 42, 0.12);  /* was 0.09 */
+  background-image: radial-gradient(var(--grid-color) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -1px -1px;
+}
+
+/* stronger edge for hero/sections; add Safari-friendly mask */
+.gradient-border-dark {
+  position: relative;
+}
+.gradient-border-dark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px; /* slightly stronger */
+  background: linear-gradient(135deg, rgba(16,185,129,0.45), rgba(56,189,248,0.45));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;            /* Chrome */
+  mask-composite: exclude;                /* Firefox */
+  /* Safari fallback */
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}

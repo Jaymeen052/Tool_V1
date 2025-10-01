@@ -140,3 +140,15 @@ export function dalysAvoidedPerYear_fromParams(
   const perCase = dalyPerIncidentCase(d) ?? 0;
   return prevented * perCase;
 }
+
+// --- monetization constants (Australia: Edney et al., 2018) ---
+export const QALY_VALUE_AUD = 28033;                 // base-case A$ per QALY
+export const QALY_VALUE_AUD_RANGE: [number, number] = [20758, 37667]; // 95% CI
+
+export function monetisedBenefitFromQALYs(
+  qalys: number,
+  valuePerQALY: number = QALY_VALUE_AUD
+): number {
+  if (!qalys || !isFinite(qalys)) return 0;
+  return qalys * valuePerQALY;
+}

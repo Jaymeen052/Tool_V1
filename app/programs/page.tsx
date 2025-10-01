@@ -3,6 +3,23 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ScrollableSelect from '@/components/ScrollableSelect';
 
+export const dynamic = 'force-dynamic'; // avoid static HTML caching
+
+// ---- storage helpers (prefer session; fall back to local for legacy) ----
+const RUN_KEYS = ['programsPage', 'programForm', 'programs', 'ceInputs_v2'] as const;
+const readJSON = (key: string) => {
+  try {
+    const s = sessionStorage.getItem(key) ?? localStorage.getItem(key);
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+};
+const writeJSON = (key: string, value: any) => {
+  try { sessionStorage.setItem(key, JSON.stringify(value)); } catch {}
+};
+const clearRunState = () => {
+  try { RUN_KEYS.forEach(k => sessionStorage.removeItem(k)); } catch {}
+};
+
 type SportProgram = {
   typeOfSport: string;
   participants: number;
@@ -11,7 +28,6 @@ type SportProgram = {
   sessionsPerWeek: number;    // 0,1..6
   minutesPerSession: number;  // 0..180
 };
-
 type PAProgram = {
   name: string;
   mode: '' | 'Group' | '1 on 1';
@@ -21,13 +37,7 @@ type PAProgram = {
   sessionsPerWeek: number;
   minutesPerSession: number;
 };
-
-type FieldErrors = {
-  global?: string;
-  sports?: string;
-  pa?: string;
-  inclusive?: string;
-};
+type FieldErrors = { global?: string; sports?: string; pa?: string; inclusive?: string; };
 
 const SESSION_OPTIONS = ['1', '2', '3', '4', '5', 'More'];
 const toSessionsNum = (opt: string) => (opt === 'More' ? 6 : Number(opt || 0));
@@ -40,7 +50,6 @@ const SPORT_OPTIONS = [
   'Para-taekwondo','Para-triathlon','Sitting volleyball','Wheelchair basketball','Wheelchair fencing','Wheelchair rugby',
   'Wheelchair tennis','Para-bowls','Other'
 ];
-
 const LOCATION_OPTIONS = [
   'Brisbane','Gold Coast','Moreton Bay','Logan','Sunshine Coast','Ipswich','Townsville','Toowoomba','Cairns','Redland',
   'Mackay','Fraser Coast','Bundaberg','Rockhampton','Gladstone','Noosa','Gympie','Scenic Rim','Livingstone'
@@ -72,32 +81,28 @@ export default function ProgramsPage() {
     setErrors(prev => ({ ...prev, [k]: undefined, global: undefined }));
   const clearAllErrors = () => setErrors({});
 
-  // Restore saved state (on first load)
+  // Restore saved state for THIS TAB only (sessionStorage)
   useEffect(() => {
-    const saved = localStorage.getItem('programsPage');
-    if (!saved) return;
-    try {
-      const s = JSON.parse(saved);
-      setSportsEnabled(!!s.sportsEnabled);
-      setSportsCount(Number(s.sportsCount || 0));
-      setSports(Array.isArray(s.sports) ? s.sports : []);
+    const s = readJSON('programsPage');
+    if (!s) return;
+    setSportsEnabled(!!s.sportsEnabled);
+    setSportsCount(Number(s.sportsCount || 0));
+    setSports(Array.isArray(s.sports) ? s.sports : []);
 
-      setPaEnabled(!!s.paEnabled);
-      setPaCount(Number(s.paCount || 0));
-      setPa(Array.isArray(s.pa) ? s.pa : []);
+    setPaEnabled(!!s.paEnabled);
+    setPaCount(Number(s.paCount || 0));
+    setPa(Array.isArray(s.pa) ? s.pa : []);
 
-      setInclusiveEnabled(!!s.inclusiveEnabled);
-      setSchoolParticipantsDisability(Number(s.schoolParticipantsDisability || 0));
-      setSpecialNeedsParticipants(Number(s.specialNeedsParticipants || 0));
-    } catch {}
+    setInclusiveEnabled(!!s.inclusiveEnabled);
+    setSchoolParticipantsDisability(Number(s.schoolParticipantsDisability || 0));
+    setSpecialNeedsParticipants(Number(s.specialNeedsParticipants || 0));
   }, []);
 
-  // EMPTY rows (no defaults)
+  // EMPTY rows
   const makeEmptySport = (): SportProgram => ({
     typeOfSport: '', participants: 0, location: '',
     sessionsPerWeekOpt: '', sessionsPerWeek: 0, minutesPerSession: 0,
   });
-
   const makeEmptyPA = (): PAProgram => ({
     name: '', mode: '', participants: 0, location: '',
     sessionsPerWeekOpt: '', sessionsPerWeek: 0, minutesPerSession: 0,
@@ -130,7 +135,6 @@ export default function ProgramsPage() {
     clearSectionError('sports');
     setSports(prev => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
   };
-
   const updPa = (i: number, patch: Partial<PAProgram>) => {
     clearSectionError('pa');
     setPa(prev => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
@@ -146,8 +150,8 @@ export default function ProgramsPage() {
     return sportsSum + paSum + inclusiveSum;
   }, [sportsEnabled, sports, paEnabled, pa, inclusiveEnabled, schoolParticipantsDisability, specialNeedsParticipants]);
 
-  // Storage helpers
-  const persist = (data: any) => localStorage.setItem('programsPage', JSON.stringify(data));
+  // persist snapshot (to sessionStorage)
+  const persist = (data: any) => writeJSON('programsPage', data);
   const getSnapshot = () => {
     const paNormalized = pa.map(p => ({
       ...p,
@@ -166,14 +170,12 @@ export default function ProgramsPage() {
     snap.sportsEnabled = false; snap.sportsCount = 0; snap.sports = [];
     persist(snap);
   };
-
   const clearPA = () => {
     setPaCount(0); setPa([]); clearSectionError('pa');
     const snap = getSnapshot();
     snap.paEnabled = false; snap.paCount = 0; snap.pa = [];
     persist(snap);
   };
-
   const clearInclusive = () => {
     setSchoolParticipantsDisability(0); setSpecialNeedsParticipants(0); clearSectionError('inclusive');
     const snap = getSnapshot();
@@ -181,7 +183,7 @@ export default function ProgramsPage() {
     persist(snap);
   };
 
-  // Any data at all?
+  // Any data?
   const hasAnyData = useMemo(() => {
     const hasSports = sportsEnabled && sportsCount > 0;
     const hasPA = paEnabled && paCount > 0;
@@ -190,22 +192,15 @@ export default function ProgramsPage() {
       (Number(specialNeedsParticipants) || 0) > 0
     );
     return hasSports || hasPA || hasInclusive;
-  }, [
-    sportsEnabled, sportsCount,
-    paEnabled, paCount,
-    inclusiveEnabled, schoolParticipantsDisability, specialNeedsParticipants
-  ]);
+  }, [sportsEnabled, sportsCount, paEnabled, paCount, inclusiveEnabled, schoolParticipantsDisability, specialNeedsParticipants]);
 
   // Validation
   const validate = () => {
     const e: FieldErrors = {};
-
     if (!hasAnyData) {
       e.global = 'Please enter at least one program or inclusive participant before viewing results.';
-      setErrors(e);
-      return false;
+      setErrors(e); return false;
     }
-
     if (sportsEnabled) {
       if (!sportsCount || sportsCount < 1) {
         e.sports = 'Please enter values: add at least one sport program.';
@@ -220,15 +215,12 @@ export default function ProgramsPage() {
         if (invalid) e.sports = 'Please enter values for all sport program fields.';
       }
     }
-
     if (paEnabled) {
       if (!paCount || paCount < 1) {
         e.pa = 'Please enter values: add at least one physical activity program.';
       } else {
         const invalid = pa.some(p =>
-          !p.name ||
-          !p.mode ||
-          !p.location ||
+          !p.name || !p.mode || !p.location ||
           !(p.sessionsPerWeek && p.sessionsPerWeek > 0) ||
           !(p.minutesPerSession && p.minutesPerSession > 0) ||
           (p.mode !== '1 on 1' && !(p.participants && p.participants > 0))
@@ -236,26 +228,24 @@ export default function ProgramsPage() {
         if (invalid) e.pa = 'Please enter values for all physical activity program fields.';
       }
     }
-
     if (inclusiveEnabled) {
       const totalInc = (Number(schoolParticipantsDisability) || 0) + (Number(specialNeedsParticipants) || 0);
       if (totalInc <= 0) e.inclusive = 'Please enter values for school/special needs participants.';
     }
-
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
+  // Back: start a fresh run (clear session)
   const goBackToStart = () => {
-    // Persist current progress so it’s not lost on nav
     clearAllErrors();
-    persist(getSnapshot());
-    router.push('/'); // client-side; no refresh
+    clearRunState();
+    router.push('/'); // fresh start
   };
 
   const saveAndGo = () => {
     if (validate()) {
-      persist(getSnapshot());
+      writeJSON('programsPage', getSnapshot());
       router.push('/output');
     } else {
       setTimeout(() => {
@@ -267,7 +257,6 @@ export default function ProgramsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Global error */}
       {errors.global && (
         <div className="rounded-lg border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm" data-error="true">
           {errors.global}
@@ -392,16 +381,16 @@ export default function ProgramsPage() {
             <h2 className="font-medium">Physical activity (PA) programs</h2>
           </div>
 
-          {paEnabled && (
-            <label className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">No. of PA programs</span>
-              <input
-                type="number" min={0} className="border rounded p-2 w-24"
-                value={paCount}
-                onChange={e => { setPaCount(Number(e.target.value)); clearSectionError('pa'); }}
-              />
-            </label>
-          )}
+        {paEnabled && (
+          <label className="flex items-center gap-2">
+            <span className="text-sm text-slate-600">No. of PA programs</span>
+            <input
+              type="number" min={0} className="border rounded p-2 w-24"
+              value={paCount}
+              onChange={e => { setPaCount(Number(e.target.value)); clearSectionError('pa'); }}
+            />
+          </label>
+        )}
         </div>
 
         {paEnabled && errors.pa && (
@@ -534,21 +523,14 @@ export default function ProgramsPage() {
 
       {/* Footer actions */}
       <div className="flex justify-between gap-3">
-        <button
-          onClick={goBackToStart}
-          className="px-4 py-2 rounded-xl border"
-          type="button"
-          title="Back to start"
-        >
+        <button onClick={goBackToStart} className="px-4 py-2 rounded-xl border" type="button">
           ← Back to Start
         </button>
-
         <button
           onClick={saveAndGo}
           className="px-4 py-2 rounded-xl bg-[#008A4E] text-white disabled:opacity-60 disabled:cursor-not-allowed"
           type="button"
           disabled={!hasAnyData}
-          title={hasAnyData ? 'View Results' : 'Enter some data first'}
         >
           View Results
         </button>
