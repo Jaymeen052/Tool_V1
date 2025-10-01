@@ -1,18 +1,22 @@
 'use client';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { clearKeys } from '@/lib/browserStorage';;
 
 export const dynamic = 'force-dynamic';
 const CLEAR_KEYS = ['programsPage', 'programForm', 'programs', 'ceInputs_v2', 'orgInfo'];
 
 export default function HomePage() {
   const router = useRouter();
-
   const [orgName, setOrgName] = React.useState('');
   const [fy, setFy] = React.useState('');
   const [errors, setErrors] = React.useState<{ org?: boolean; fy?: boolean }>({});
 
   const canStart = orgName.trim().length > 0 && fy.trim().length > 0;
+
+  React.useEffect(() => {
+    clearKeys(CLEAR_KEYS);
+  }, []);
 
   const startNewRun = () => {
     // validate

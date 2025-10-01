@@ -2,23 +2,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ScrollableSelect from '@/components/ScrollableSelect';
+import { readJSON, writeJSON, clearKeys } from '@/lib/browserStorage';
 
 export const dynamic = 'force-dynamic'; // avoid static HTML caching
 
-// ---- storage helpers (prefer session; fall back to local for legacy) ----
+// ---- storage keys (kept exactly) ----
 const RUN_KEYS = ['programsPage', 'programForm', 'programs', 'ceInputs_v2'] as const;
-const readJSON = (key: string) => {
-  try {
-    const s = sessionStorage.getItem(key) ?? localStorage.getItem(key);
-    return s ? JSON.parse(s) : null;
-  } catch { return null; }
-};
-const writeJSON = (key: string, value: any) => {
-  try { sessionStorage.setItem(key, JSON.stringify(value)); } catch {}
-};
-const clearRunState = () => {
-  try { RUN_KEYS.forEach(k => sessionStorage.removeItem(k)); } catch {}
-};
 
 type SportProgram = {
   typeOfSport: string;
@@ -76,14 +65,14 @@ export default function ProgramsPage() {
   // Errors
   const [errors, setErrors] = useState<FieldErrors>({});
 
-  // --- clear error helpers ---
+  // --- clear error helpers (unchanged) ---
   const clearSectionError = (k: keyof FieldErrors) =>
     setErrors(prev => ({ ...prev, [k]: undefined, global: undefined }));
   const clearAllErrors = () => setErrors({});
 
-  // Restore saved state for THIS TAB only (sessionStorage)
+  // Restore saved state for THIS TAB only (sessionStorage) — now via shared readJSON
   useEffect(() => {
-    const s = readJSON('programsPage');
+    const s = readJSON<any>('programsPage');
     if (!s) return;
     setSportsEnabled(!!s.sportsEnabled);
     setSportsCount(Number(s.sportsCount || 0));
@@ -98,7 +87,7 @@ export default function ProgramsPage() {
     setSpecialNeedsParticipants(Number(s.specialNeedsParticipants || 0));
   }, []);
 
-  // EMPTY rows
+  // EMPTY rows (unchanged)
   const makeEmptySport = (): SportProgram => ({
     typeOfSport: '', participants: 0, location: '',
     sessionsPerWeekOpt: '', sessionsPerWeek: 0, minutesPerSession: 0,
@@ -108,7 +97,7 @@ export default function ProgramsPage() {
     sessionsPerWeekOpt: '', sessionsPerWeek: 0, minutesPerSession: 0,
   });
 
-  // Keep arrays in sync — SPORTS
+  // Keep arrays in sync — SPORTS (unchanged)
   useEffect(() => {
     if (!sportsEnabled) return;
     setSports(prev => {
@@ -119,7 +108,7 @@ export default function ProgramsPage() {
     });
   }, [sportsEnabled, sportsCount]);
 
-  // Keep arrays in sync — PA
+  // Keep arrays in sync — PA (unchanged)
   useEffect(() => {
     if (!paEnabled) return;
     setPa(prev => {
@@ -130,7 +119,7 @@ export default function ProgramsPage() {
     });
   }, [paEnabled, paCount]);
 
-  // Updaters (clear errors on change)
+  // Updaters (clear errors on change) (unchanged)
   const updSport = (i: number, patch: Partial<SportProgram>) => {
     clearSectionError('sports');
     setSports(prev => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
@@ -140,7 +129,7 @@ export default function ProgramsPage() {
     setPa(prev => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
   };
 
-  // Totals
+  // Totals (unchanged)
   const totalParticipants = useMemo(() => {
     const sportsSum = sportsEnabled ? sports.reduce((t, p) => t + (p.participants || 0), 0) : 0;
     const paSum = paEnabled ? pa.reduce((t, p) => t + (p.mode === '1 on 1' ? 1 : (p.participants || 0)), 0) : 0;
@@ -150,7 +139,7 @@ export default function ProgramsPage() {
     return sportsSum + paSum + inclusiveSum;
   }, [sportsEnabled, sports, paEnabled, pa, inclusiveEnabled, schoolParticipantsDisability, specialNeedsParticipants]);
 
-  // persist snapshot (to sessionStorage)
+  // persist snapshot (to sessionStorage) — now using debounced writeJSON
   const persist = (data: any) => writeJSON('programsPage', data);
   const getSnapshot = () => {
     const paNormalized = pa.map(p => ({
@@ -183,7 +172,7 @@ export default function ProgramsPage() {
     persist(snap);
   };
 
-  // Any data?
+  // Any data? (unchanged)
   const hasAnyData = useMemo(() => {
     const hasSports = sportsEnabled && sportsCount > 0;
     const hasPA = paEnabled && paCount > 0;
@@ -194,7 +183,7 @@ export default function ProgramsPage() {
     return hasSports || hasPA || hasInclusive;
   }, [sportsEnabled, sportsCount, paEnabled, paCount, inclusiveEnabled, schoolParticipantsDisability, specialNeedsParticipants]);
 
-  // Validation
+  // Validation (unchanged)
   const validate = () => {
     const e: FieldErrors = {};
     if (!hasAnyData) {
@@ -236,17 +225,22 @@ export default function ProgramsPage() {
     return Object.keys(e).length === 0;
   };
 
-  // Back: start a fresh run (clear session)
+  // Back: start a fresh run (clear session) — uses shared clearKeys now
   const goBackToStart = () => {
     clearAllErrors();
-    clearRunState();
+    // replace previous clearRunState() with shared helper:
+    clearKeys(RUN_KEYS as unknown as string[]);
     router.push('/'); // fresh start
   };
 
   const saveAndGo = () => {
     if (validate()) {
-      writeJSON('programsPage', getSnapshot());
-      router.push('/output');
+      const snapshot = getSnapshot();
+      writeJSON('programsPage', snapshot);
+
+      // Encode snapshot in query param (kept exactly)
+      const encoded = encodeURIComponent(JSON.stringify(snapshot));
+      router.push(`/output?data=${encoded}`);
     } else {
       setTimeout(() => {
         const el = document.querySelector('[data-error="true"]') as HTMLElement | null;
