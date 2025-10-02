@@ -26,6 +26,17 @@ const METHODS_IMAGES: string[] = ['/docs/Information-and-Defination-table.png'];
 // <1.00 = worse than trials; >1.00 = better than trials.
 const PROGRAM_EFFECTIVENESS = 1.00;
 
+// ---- read org info saved on the first screen ----
+const readOrgInfo = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem('orgInfo') ?? localStorage.getItem('orgInfo');
+    return raw ? JSON.parse(raw) as { orgName?: string; fy?: string } : null;
+  } catch {
+    return null;
+  }
+};
+
 
 /* ---------------- helpers / formatters ---------------- */
 const fmtNum = (v: number | null | undefined, d = 2) =>
@@ -283,6 +294,16 @@ export default function OutputPage() {
     return { enrolledParticipants: enrolled, activeParticipants: active };
   }, [program]);
 
+  const orgName = useMemo(() => {
+    const info = readOrgInfo();
+    return info?.orgName?.trim() || '';
+  }, []);
+
+  const financialYear = useMemo(() => {
+    const info = readOrgInfo();
+    return info?.fy?.trim() || '';
+  }, []);
+
   /* ---------- Inclusive programs (schools / special needs) ---------- */
   const inclusion = useMemo(() => {
     // Try explicit paths first, then fuzzy scans as a fallback.
@@ -382,11 +403,18 @@ export default function OutputPage() {
 
       {/* PRINT-ONLY COVER HEADER */}
       <div className="hidden print:block text-center mb-4">
-        {/* If you have /public/logo.png, this works. Otherwise use <img> */}
         <img src="/logo.png" alt="Logo" className="mx-auto h-16 w-auto" />
         <div className="text-xl font-semibold mt-2">disport</div>
-        <div className="text-sm text-slate-600 mt-1">Annual Impact Report</div>
+
+        {/* From the first screen */}
+        {orgName ? <div className="mt-2 text-lg font-medium">{`Organisation name: ${orgName}`}</div> : null}
+        {financialYear ? (
+          <div className="text-sm text-slate-600">{`Financial year: ${financialYear}`}</div>
+        ) : null}
+
+        <div className="text-sm text-slate-600 mt-2">Annual Impact Report</div>
       </div>
+
 
       {/* Header (interactive buttons hidden in print) */}
       <div className="print:hidden">
