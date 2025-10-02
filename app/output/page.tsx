@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   DISEASES, meets150, nntPerYear, casesPreventedPerYear,
   qalyLossPerIncidentCase, dalyPerIncidentCase,
@@ -21,6 +21,10 @@ export const dynamic = 'force-dynamic';
 
 /* ---------------- Methods/Definitions (as images) ---------------- */
 const METHODS_IMAGES: string[] = ['/docs/Information-and-Defination-table.png'];
+// Real-world effectiveness vs. trial efficacy (1.00 = same as clinical reference).
+// <1.00 = worse than trials; >1.00 = better than trials.
+const PROGRAM_EFFECTIVENESS = 1.00;
+
 
 /* ---------------- helpers / formatters ---------------- */
 const fmtNum = (v: number | null | undefined, d = 2) =>
@@ -178,13 +182,31 @@ export default function OutputPage() {
   const [baseScale, setBaseScale] = useState(1);
   const effectiveScale = baseScale * zoom;
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
-    const keys = ['programsPage', 'programForm', 'programs'];
+    // 1) Prefer the snapshot passed via query string (?data=...)
+    const raw = searchParams?.get('data');
+    if (raw) {
+      let parsed: any = null;
+      try { parsed = JSON.parse(raw); } 
+      catch { try { parsed = JSON.parse(decodeURIComponent(raw)); } catch {} }
+      if (parsed) {
+        setProgram(parsed);
+        // (Optional) keep the latest snapshot in this tab for refreshes:
+        try { sessionStorage.setItem('programsPage', JSON.stringify(parsed)); } catch {}
+        return;
+      }
+    }
+
+    // 2) Fallback to whatever is in storage (same as before)
+    const keys = ['programsPage', 'programForm', 'programs'] as const;
     for (const k of keys) {
       const obj = readJSON(k);
       if (obj) { setProgram(obj); return; }
     }
-  }, []);
+  }, [searchParams]);
+
 
   useEffect(() => {
     if (!showDoc) return;
@@ -284,7 +306,13 @@ export default function OutputPage() {
 
   // disease rows
   const rows = useMemo(() => DISEASES.map((d) => {
-    const prevented = casesPreventedPerYear(activeParticipants, d.p0, d.rrr);
+    // const prevented = casesPreventedPerYear(activeParticipants, d.p0, d.rrr);
+    // AFTER
+    const prevented = casesPreventedPerYear(
+      activeParticipants,
+      d.p0,
+      d.rrr * PROGRAM_EFFECTIVENESS
+    );
     const nntClin = nntPerYear(d.p0, d.rrr);
     const qalyPerCase = qalyLossPerIncidentCase(d) ?? 0;
     const dalyPerCase = dalyPerIncidentCase(d) ?? 0;
