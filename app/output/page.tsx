@@ -444,7 +444,7 @@ export default function OutputPage() {
         <div className="space-y-1">
           <h2 className="font-semibold">Monetised health benefit</h2>
           <p className="text-sm text-slate-600">
-            Dollars saved are computed as <b>QALYs gained × {fmtMoney(QALY_VALUE_AUD)}</b>. (We show the same monetisation for DALYs avoided.)
+            Dollars saved are computed as <b>QALYs gained × {fmtMoney(QALY_VALUE_AUD)}</b>.
           </p>
         </div>
 
@@ -547,7 +547,7 @@ export default function OutputPage() {
               </div>
 
               <div className="rounded-xl border p-4">
-                <div className="text-sm text-slate-600">Special needs (participants)</div>
+                <div className="text-sm text-slate-600">Special needs schools (participants)</div>
                 <div className="text-2xl font-semibold mt-1">{fmtInt(inclusion.special)}</div>
                 <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
                   <div className="h-full bg-emerald-500" style={{ width: `${pct(inclusion.special)}%` }} />
