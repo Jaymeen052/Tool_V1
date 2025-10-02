@@ -166,6 +166,16 @@ const firstNum = (...vals: (number | undefined)[]) => {
   for (const v of vals) if (isNum(v)) return asNum(v);
   return 0;
 };
+// --- server-safe storage helpers (OK during prerender) ---
+const safeReadJSON = (key: string) => {
+  if (typeof window === 'undefined') return null; // SSR guard
+  try {
+    const raw = window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
 
 export default function OutputPage() {
@@ -202,7 +212,7 @@ export default function OutputPage() {
     // 2) Fallback to whatever is in storage (same as before)
     const keys = ['programsPage', 'programForm', 'programs'] as const;
     for (const k of keys) {
-      const obj = readJSON(k);
+      const obj = safeReadJSON(k);
       if (obj) { setProgram(obj); return; }
     }
   }, [searchParams]);
