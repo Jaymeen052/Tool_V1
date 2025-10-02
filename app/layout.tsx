@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
 
         <footer className="text-center text-sm sm:text-base text-slate-600 py-8 border-t bg-white">
-          <div>© {new Date().getFullYear()} Sporting Wheelies & Paralympic Sports Association</div>
+          <div>© {new Date().getFullYear()} Sporting Wheelies</div>
           
           <div>
             Admin contact:{' '}

@@ -13,7 +13,7 @@ import {
   ResponsiveContainer, LabelList, Cell, PieChart, Pie
 } from '@/components/RechartsClient';
 
-import PdfCapture from '@/components/PdfCapture';
+import PdfCapture from '@/components/PdfCapture'; // (kept import; not used)
 import Image from 'next/image';
 import { readJSON } from '@/lib/browserStorage';
 
@@ -332,37 +332,70 @@ export default function OutputPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-3 lg:px-6 py-4 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => router.push('/programs')} className="px-3 py-2 rounded-lg border hover:bg-slate-50">
-            ← Back to Programs
-          </button>
-          <h1 className="text-xl font-semibold">Results — Annual Impact</h1>
-        </div>
+    <div className="mx-auto w-full max-w-[1440px] px-3 lg:px-6 py-4 space-y-4 print:bg-white">
 
-        <div className="flex items-center gap-3">
-          <div className="text-sm text-slate-600 tabular-nums">
-            Enrolled: <b>{fmtInt(enrolledParticipants)}</b> &nbsp;|&nbsp; Active (≥150): <b>{fmtInt(activeParticipants)}</b>
+      {/* PRINT-ONLY COVER HEADER */}
+      <div className="hidden print:block text-center mb-4">
+        {/* If you have /public/logo.png, this works. Otherwise use <img> */}
+        <img src="/logo.png" alt="Logo" className="mx-auto h-16 w-auto" />
+        <div className="text-xl font-semibold mt-2">disport</div>
+        <div className="text-sm text-slate-600 mt-1">Annual Impact Report</div>
+      </div>
+
+      {/* Header (interactive buttons hidden in print) */}
+      <div className="print:hidden">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Left: back + title + counts */}
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => router.push('/programs')}
+              className="px-3 py-2 rounded-lg border hover:bg-slate-50 shrink-0"
+            >
+              ← Back to Programs
+            </button>
+
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold leading-tight truncate">
+                Results — Annual Impact
+              </h1>
+              <div className="mt-1 text-sm text-slate-600 tabular-nums">
+                Enrolled: <b>{fmtInt(enrolledParticipants)}</b>
+                <span className="mx-2">·</span>
+                Active (≥150): <b>{fmtInt(activeParticipants)}</b>
+              </div>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => { setShowDoc(true); setPage(0); }}
-            className="px-3 py-2 rounded-full bg-emerald-600 text-white shadow-sm
-                       hover:bg-emerald-700 active:bg-emerald-800 transition"
-            title="Open methods & definitions"
-          >
-            Methods &amp; Definitions
-          </button>
+          {/* Right: actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => { setShowDoc(true); setPage(0); }}
+              className="h-10 px-4 rounded-full bg-emerald-600 text-white shadow-sm
+                        hover:bg-emerald-700 active:bg-emerald-800 transition shrink-0"
+              title="Open methods & definitions"
+            >
+              Methods &amp; Definitions
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="h-10 px-4 rounded-full border bg-white hover:bg-slate-50 shrink-0"
+              title="Download PDF"
+            >
+              Download PDF
+            </button>
+          </div>
         </div>
       </div>
 
+
       {/* 1) Disease table */}
-      <div className="rounded-2xl border bg-white overflow-hidden">
+      <div className="rounded-2xl border bg-white overflow-hidden print:break-inside-avoid">
         <div className="px-4 py-2 bg-slate-50 border-b text-[13px] font-medium">Annual impact by disease</div>
-        <div className="max-h-[70vh] overflow-auto">
+        <div className="max-h-[70vh] overflow-auto print:overflow-visible">
           <table className="w-full table-fixed text-[13px] tabular-nums">
             <colgroup>
               <col className="w-[32%]" />
@@ -407,7 +440,7 @@ export default function OutputPage() {
       </div>
 
       {/* 2) Monetised health benefit */}
-      <div className="rounded-2xl border bg-white p-4 space-y-4">
+      <div className="rounded-2xl border bg-white p-4 space-y-4 print:break-inside-avoid">
         <div className="space-y-1">
           <h2 className="font-semibold">Monetised health benefit</h2>
           <p className="text-sm text-slate-600">
@@ -420,7 +453,6 @@ export default function OutputPage() {
           <table className="w-full text-sm tabular-nums">
             <tbody>
               <tr className="border-t"><td className="align-top px-4 py-2">QALYs gained (total)</td><td className="align-top px-4 py-2 text-right">{fmtNum(totals.qalys, 2)}</td></tr>
-              <tr className="border-t"><td className="align-top px-4 py-2">DALYs avoided (total)</td><td className="align-top px-4 py-2 text-right">{fmtNum(totals.dalys, 2)}</td></tr>
               <tr className="border-t">
                 <td className="align-top px-4 py-2">Value per QALY (AUD)</td>
                 <td className="align-top px-4 py-2 text-right">
@@ -439,7 +471,7 @@ export default function OutputPage() {
       </div>
 
       {/* 3) Program composition */}
-      <div className="rounded-2xl border bg-white p-4 space-y-4">
+      <div className="rounded-2xl border bg-white p-4 space-y-4 print:break-inside-avoid">
         <h2 className="font-semibold">Program composition (participants)</h2>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="rounded-xl border p-3">
@@ -492,7 +524,7 @@ export default function OutputPage() {
 
       {/* 4) Inclusive programs (moved to the end & percent text removed) */}
       {!!inclusion.enabled && (
-        <div className="rounded-2xl border bg-white p-4">
+        <div className="rounded-2xl border bg-white p-4 print:break-inside-avoid">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold">Inclusive programs (schools / special needs)</h2>
             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -512,7 +544,6 @@ export default function OutputPage() {
                 <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
                   <div className="h-full bg-sky-400" style={{ width: `${pct(inclusion.school)}%` }} />
                 </div>
-                {/* percent text removed as requested */}
               </div>
 
               <div className="rounded-xl border p-4">
@@ -521,7 +552,6 @@ export default function OutputPage() {
                 <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
                   <div className="h-full bg-emerald-500" style={{ width: `${pct(inclusion.special)}%` }} />
                 </div>
-                {/* percent text removed as requested */}
               </div>
             </div>
           </div>

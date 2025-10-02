@@ -258,7 +258,7 @@ export default function ProgramsPage() {
       )}
 
       <div className="flex items-end justify-between">
-        <h1 className="text-xl font-semibold">Programs (QLD/Brisbane focused)</h1>
+        <h1 className="text-xl font-semibold">Programs (QLD Based)</h1>
         <div className="text-sm text-slate-600">
           Total participants (all sections): <b>{totalParticipants}</b>
         </div>
@@ -504,7 +504,7 @@ export default function ProgramsPage() {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-sm text-slate-600">Special needs (participants)</span>
+              <span className="text-sm text-slate-600">Special needs school (participants)</span>
               <input
                 type="number" min={0} className="border rounded p-2"
                 value={specialNeedsParticipants || ''}
