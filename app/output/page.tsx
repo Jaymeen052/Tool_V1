@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import {
   DISEASES, meets150, nntPerYear, casesPreventedPerYear,
   qalyLossPerIncidentCase, dalyPerIncidentCase,
@@ -177,8 +178,15 @@ const safeReadJSON = (key: string) => {
   }
 };
 
-
 export default function OutputPage() {
+  return (
+    <Suspense fallback={null}>
+      <OutputPageInner />
+    </Suspense>
+  );
+}
+
+ function OutputPageInner() {
   const router = useRouter();
 
   const [program, setProgram] = useState<any>(null);
